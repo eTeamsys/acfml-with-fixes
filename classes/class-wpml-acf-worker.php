@@ -26,6 +26,7 @@ class WPML_ACF_Worker implements \IWPML_Backend_Action, \IWPML_Frontend_Action, 
 		add_filter( 'wpml_duplicate_generic_string', [ $this, 'duplicate_post_meta' ], 10, 3 );
 		add_filter( 'wpml_sync_parent_for_post_type', [ $this, 'sync_parent_for_post_type' ], 10, 2 );
 		add_action( 'wpml_after_copy_custom_field', [ $this, 'after_copy_custom_field' ], 10, 3 );
+		add_action( 'wpml_after_copy_term_custom_field', [ $this, 'after_copy_term_custom_field' ], 10, 3 );
 	}
 
 	/**
@@ -45,6 +46,30 @@ class WPML_ACF_Worker implements \IWPML_Backend_Action, \IWPML_Frontend_Action, 
 				$meta_value_converted = $this->duplicate_post_meta( $meta_value, $target_lang, $meta_data );
 				if ( $meta_value !== $meta_value_converted ) {
 					update_post_meta( $post_id_to, $meta_key, $meta_value_converted, $meta_value );
+				}
+			}
+		}
+	}
+
+	public function after_copy_term_custom_field( $term_id_from, $term_id_to, $meta_key ) {
+		$field = acf_get_field( $meta_key );
+
+		if ( $field ) {
+			wp_cache_delete( $term_id_to, 'term_meta' ); //fix - get non cached value 
+			$meta_value  = get_term_meta( $term_id_to, $meta_key, true );
+
+			//$target_lang = $this->get_target_lang( $term_id_to );
+			//term adaptation for get_target_lang()
+			$args['element_id']   = $term_id_to;
+			$args['element_type'] = get_term($term_id_to)->taxonomy;
+			$target_lang           = apply_filters( 'wpml_element_language_code', null, $args );
+
+			if ( $target_lang ) {
+				$meta_data            = $this->prepare_metadata( $meta_value, $meta_key, 'term_'.$term_id_from, 'term_'.$term_id_to );
+				$meta_value_converted = $this->duplicate_post_meta( $meta_value, $target_lang, $meta_data );
+
+				if ( $meta_value !== $meta_value_converted ) {
+					update_term_meta( $term_id_to, $meta_key, $meta_value_converted, $meta_value );
 				}
 			}
 		}
