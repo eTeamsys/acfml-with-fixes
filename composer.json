@@ -1,4 +1,7 @@
 {
   "name": "eteamsys/acfml-with-fixes",
-  "type": "wordpress-plugin"
+  "type": "wordpress-plugin",
+  "extra": {
+        "installer-name": "wpml-acfml"
+  }
 }
